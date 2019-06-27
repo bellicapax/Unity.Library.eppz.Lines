@@ -1,13 +1,14 @@
 ﻿//
 // Copyright (c) 2017 Geri Borbás http://www.twitter.com/_eppz
-// Modifications by Eris Koleszar http://eris.lol
+// Modifications by Eris Koleszar http://eris.lol.
+// Debug Extension drawing methods from Arkham Interactive's Debug Draw Extension Asset Store package
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 //  The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 //  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
-using UnityEngine;
 using System.Collections.Generic;
+using UnityEngine;
 
 [RequireComponent(typeof(Camera))]
 public class DebugDraw : MonoBehaviour
@@ -49,16 +50,25 @@ public class DebugDraw : MonoBehaviour
                     // Create new instance if one doesn't already exist.
                     if (_instance == null)
                     {
-                        // Need to create a new GameObject to attach the singleton to.
-                        var singletonObject = new GameObject();
-                        _instance = singletonObject.AddComponent<DebugDraw>();
-                        singletonObject.name = "DebugDraw (Singleton)";
-
-                        // Make instance persistent.
-                        DontDestroyOnLoad(singletonObject);
+                        _instance = FindObjectOfType<DebugDraw>();
+                        if (_instance == null)
+                        {
+                            // First try to add it to the main camera so we don't add unnecessary cameras
+                            var cam = Camera.main;
+                            if (cam != null)
+                            {
+                                _instance = cam.gameObject.AddComponent<DebugDraw>();
+                            }
+                            else
+                            {
+                                // Need to create a new GameObject to attach the singleton to.
+                                var singletonObject = new GameObject();
+                                _instance = singletonObject.AddComponent<DebugDraw>();
+                                singletonObject.name = "DebugDraw (Singleton)";
+                            }
+                        }
                     }
                 }
-
                 return _instance;
             }
         }
@@ -80,11 +90,10 @@ public class DebugDraw : MonoBehaviour
 
     private Camera _camera;
 
-    public enum UpdateMode { Update, LateUpdate };
-    public UpdateMode UpdateType = UpdateMode.Update;
     private List<Line> _lineBatch = new List<Line>();
     [SerializeField]
     private Material _material;
+    private bool _ranPostRender;
 
     private void Reset()
     {
@@ -102,28 +111,28 @@ public class DebugDraw : MonoBehaviour
     #region Draw in Scene View
 
 #if UNITY_EDITOR
-    private void Update()
-    {
-        if (UpdateType == UpdateMode.Update)
-        {
-            DrawLines();
-        }
-    }
 
     private void LateUpdate()
     {
-        if (UpdateType == UpdateMode.LateUpdate)
-        {
-            DrawLines();
-        }
+        DrawLines();
     }
 
     private void DrawLines()
     {
+        // NEED TO CLEAR IF IN SCENE VIEWWWWW
         var numLines = _lineBatch.Count;
         for (int i = 0; i < numLines; i++)
         {
-            DrawLine(_lineBatch[i].From, _lineBatch[i].To, _lineBatch[i].Color);
+            Debug.DrawLine(_lineBatch[i].From, _lineBatch[i].To, _lineBatch[i].Color);
+        }
+
+        if (_ranPostRender)
+        {
+            _ranPostRender = false;
+        }
+        else
+        {
+            _lineBatch.Clear();
         }
     }
 #endif
@@ -134,6 +143,7 @@ public class DebugDraw : MonoBehaviour
 
     void OnPostRender()
     {
+        _ranPostRender = true;
         GL.PushMatrix();
         GL.LoadProjectionMatrix(_camera.projectionMatrix);
         DrawCall();
