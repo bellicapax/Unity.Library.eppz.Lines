@@ -6,43 +6,29 @@
 //  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 using UnityEngine;
-using System.Collections;
 
-
-public class Lissajous : EPPZ.Lines.DirectLineRenderer
+public class Bezier : MonoBehaviour
 {
+	public Transform a;
+	public Transform b;
+	public Transform c;
+	[Range (1,50)] public int segments = 20;
 
 
-	float t = 0.0f;
-
-	const float resolution = 0.01f;
-	const float speed = 0.2f;
-
-
-	protected override void OnDraw ()
+	protected void Update()
 	{
-		// Draw Lissajous curve segments.
-		Vector2 from = Function(t, 0.0f);
-		for (float s = resolution; s < Mathf.PI * (2.0 + resolution); s += resolution)
+		// Increments.
+		Vector3 increment_a_b = (b.position - a.position) / (float)segments;
+		Vector3 increment_b_c = (c.position - b.position) / (float)segments;
+
+		// Draw segments.
+		for (int index = 0; index <= segments; index ++)
 		{
-			Vector2 to = Function(t, s);
+			Vector2 from = a.position + (increment_a_b * index);
+			Vector2 to = b.position + (increment_b_c * index);
 
 			// Direct draw.
-			DrawLine(from, to, Color.white);
-
-			from = to;
+			DebugDraw.Instance.DrawLine(from, to, Color.white);
 		}
-
-		// Step.
-		t += speed;
-	}
-
-	Vector2 Function(float t, float s)
-	{
-		// More at https://en.wikipedia.org/wiki/Lissajous_curve
-		return new Vector2(
-			Mathf.Sin (5 * s + t),
-			Mathf.Sin (4 * s + t)
-		);
 	}
 }
